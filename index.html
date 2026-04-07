@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ross Allen Financial | Lender Portal Prototype</title>
+  <style>
+    :root {
+      --bg: #0f141b;
+      --panel: #161d27;
+      --panel-2: #1c2531;
+      --panel-3: #202a38;
+      --border: #2a3648;
+      --text: #e7edf7;
+      --muted: #9ba8bd;
+      --accent: #5f88c8;
+      --good: #5ca47d;
+      --warn: #d18b4f;
+      --bad: #c66363;
+      --chip: #2c394d;
+      --internal: #3c2830;
+      --shadow: 0 8px 18px rgba(0,0,0,.28);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    .app { display: grid; grid-template-columns: 240px 1fr; height: 100%; }
+
+    .sidebar {
+      border-right: 1px solid var(--border);
+      background: #0d1219;
+      padding: 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .brand {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, #141b25, #111720);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+    .brand h1 { margin: 0; font-size: 14px; letter-spacing: .08em; text-transform: uppercase; }
+    .brand p { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+
+    .nav { display: flex; flex-direction: column; gap: 6px; }
+    .nav button {
+      width: 100%; text-align: left;
+      border: 1px solid transparent;
+      background: transparent; color: var(--text);
+      padding: 9px 10px; border-radius: 6px;
+      cursor: pointer; font-size: 13px;
+    }
+    .nav button:hover { background: #141c28; }
+    .nav button.active { background: #182334; border-color: #2f425d; }
+    .internal-badge {
+      margin-top: auto;
+      border: 1px solid #60404c;
+      background: #2d1f24;
+      color: #f0cdd5;
+      font-size: 11px;
+      border-radius: 6px;
+      padding: 7px 8px;
+      display: none;
+    }
+
+    .main { display: flex; flex-direction: column; min-width: 0; }
+
+    .topbar {
+      border-bottom: 1px solid var(--border);
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      background: #111822;
+    }
+    .context h2 { margin: 0; font-size: 16px; font-weight: 600; }
+    .context p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    select, input, button, .chip {
+      background: var(--panel-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 7px 9px;
+      font-size: 12px;
+    }
+    button { cursor: pointer; }
+    button:hover { filter: brightness(1.08); }
+
+    .view { display: none; padding: 12px 16px 16px; overflow: auto; height: calc(100vh - 68px); }
+    .view.active { display: block; }
+
+    .kpis { display: grid; grid-template-columns: repeat(8, minmax(140px,1fr)); gap: 8px; margin-bottom: 10px; }
+    .kpi {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 9px;
+      min-height: 74px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      cursor: pointer;
+    }
+    .kpi .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+    .kpi .value { font-size: 18px; font-weight: 600; margin-top: 4px; }
+    .kpi .delta { font-size: 11px; color: var(--muted); }
+
+    .grid-3 { display: grid; grid-template-columns: 2fr 1.5fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      min-width: 0;
+    }
+    .panel h3 {
+      margin: 0;
+      font-size: 12px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: 10px 10px 0;
+      color: #c7d4e8;
+    }
+    .panel .body { padding: 8px 10px 10px; }
+
+    .chart-wrap { position: relative; }
+    .chart-tooltip {
+      position: absolute;
+      right: 8px;
+      top: 6px;
+      background: #0f1620;
+      border: 1px solid var(--border);
+      font-size: 11px;
+      padding: 6px 7px;
+      border-radius: 6px;
+      pointer-events: none;
+      color: #dce6f5;
+      min-width: 110px;
+    }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--muted); margin-top: 8px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+    .table-wrap {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th {
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #172131;
+      color: #c8d4e7;
+      border-bottom: 1px solid var(--border);
+      padding: 8px;
+      font-weight: 600;
+    }
+    tbody td { padding: 8px; border-bottom: 1px solid #233043; color: #d7e2f1; }
+    tbody tr { cursor: pointer; }
+    tbody tr:hover { background: #1a2535; }
+
+    .status {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2px 8px;
+      font-size: 11px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .good { color: #9ed6b8; border-color: #3f6d58; background: rgba(73,126,99,.2); }
+    .warn { color: #e6c49f; border-color: #6a5034; background: rgba(127,86,42,.2); }
+    .bad { color: #e5aaaa; border-color: #764444; background: rgba(139,66,66,.2); }
+    .info { color: #b6caea; border-color: #4d6384; background: rgba(73,104,149,.2); }
+
+    .two-col { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+    .alerts .item { border-top: 1px solid var(--border); padding: 8px 0; font-size: 12px; }
+    .alerts .item:first-child { border-top: 0; }
+    .quick { display: flex; gap: 7px; flex-wrap: wrap; }
+
+    .crumbs { display: flex; gap: 7px; align-items: center; font-size: 12px; color: var(--muted); margin-bottom: 8px; flex-wrap: wrap; }
+    .crumbs button { padding: 4px 7px; }
+
+    .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; align-items: center; }
+    .tabs { display: flex; gap: 6px; margin: 7px 0; }
+    .tab { font-size: 12px; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--border); background: var(--chip); cursor: pointer; }
+    .tab.active { background: #213247; border-color: #456182; }
+
+    .loans-layout { display: grid; grid-template-columns: 1.7fr 1fr; gap: 10px; min-height: 520px; }
+    .detail {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 10px;
+      overflow: auto;
+    }
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; font-size: 12px; }
+    .meta { background: #152030; border: 1px solid var(--border); border-radius: 6px; padding: 7px; }
+    .timeline { margin-top: 8px; border-top: 1px solid var(--border); }
+    .event { border-bottom: 1px solid #243246; padding: 7px 0; font-size: 12px; }
+
+    .internal-banner {
+      border: 1px solid #7c515f;
+      background: var(--internal);
+      color: #f2d6de;
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .report-toggle { display: flex; gap: 7px; margin-bottom: 8px; }
+    .report-card-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+
+    .empty {
+      padding: 28px 16px;
+      text-align: center;
+      color: var(--muted);
+      border: 1px dashed #3a4a60;
+      border-radius: 8px;
+      margin-top: 8px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(6,10,15,.62);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+    }
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(760px, 92vw);
+      max-height: 84vh;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #131b26;
+      box-shadow: 0 20px 40px rgba(0,0,0,.45);
+    }
+    .modal-head { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding: 10px 12px; }
+    .modal-body { padding: 12px; }
+
+    .print-header { display: none; }
+
+    @media (max-width: 1180px) {
+      .app { grid-template-columns: 72px 1fr; }
+      .brand p, .nav button span { display: none; }
+      .nav button { text-align: center; }
+      .kpis { grid-template-columns: repeat(4,1fr); }
+      .grid-3, .two-col, .loans-layout, .report-card-grid { grid-template-columns: 1fr; }
+    }
+
+    @media print {
+      body { background: #fff; color: #111; overflow: visible; }
+      .sidebar, .topbar, .no-print { display: none !important; }
+      .main { display: block; }
+      .view { display: none !important; height: auto; overflow: visible; padding: 0; }
+      #view-reports { display: block !important; color: #111; }
+      .panel, .table-wrap, .detail { background: #fff; border-color: #d7dce2; box-shadow: none; }
+      thead th { background: #f3f6fa; color: #222; }
+      tbody td { color: #222; border-bottom-color: #e5e8ed; }
+      .print-header { display: block; border-bottom: 2px solid #d0d7e1; padding: 10px 0; margin-bottom: 10px; }
+      .print-header h1 { margin: 0; font-size: 18px; }
+      .print-header p { margin: 4px 0 0; font-size: 12px; color: #444; }
+      .status { color: #222 !important; border-color: #bbb !important; background: #fff !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>Ross Allen Financial</h1>
+        <p>Indirect Lending Portal</p>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div id="internalBadge" class="internal-badge">Internal-only controls active</div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="context">
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Portfolio overview</p>
+        </div>
+        <div class="controls no-print">
+          <label>
+            <span style="font-size:11px;color:var(--muted)">Date</span>
+            <select id="dateRange">
+              <option value="thisMonth">This Month</option>
+              <option value="lastMonth">Last Month</option>
+              <option value="quarter">Quarter</option>
+              <option value="lifetime" selected>Lifetime</option>
+            </select>
+          </label>
+          <label>
+            <span style="font-size:11px;color:var(--muted)">Role</span>
+            <select id="roleSelect">
+              <option value="cu">Credit Union User</option>
+              <option value="admin">Ross Allen Admin</option>
+            </select>
+          </label>
+          <label id="viewAsWrap" style="display:none">
+            <span style="font-size:11px;color:var(--muted)">View As Client</span>
+            <select id="viewAsSelect"></select>
+          </label>
+        </div>
+      </header>
+
+      <section class="view active" id="view-dashboard"></section>
+      <section class="view" id="view-portfolio"></section>
+      <section class="view" id="view-loans"></section>
+      <section class="view" id="view-reserve"></section>
+      <section class="view" id="view-reports"></section>
+      <section class="view" id="view-chargeoffs"></section>
+    </main>
+  </div>
+
+  <div class="modal" id="modal">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <strong id="modalTitle">Detail</strong>
+        <button id="closeModal">Close</button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const data = buildData();
+  const state = {
+    currentView: 'dashboard',
+    role: 'cu',
+    viewAs: '',
+    dateRange: 'lifetime',
+    selectedLoanId: null,
+    loansTab: 'Active',
+    loanFilters: { search:'', program:'all', merchant:'all', group:'all', status:'all', bucket:'all' },
+    portfolioPath: { tenantId:null, programId:null, merchantId:null, groupId:null },
+    reportMode: 'board'
+  };
+
+  const navItems = [
+    ['dashboard','Dashboard'],
+    ['portfolio','Portfolio / Hierarchy'],
+    ['loans','Loans / CRM'],
+    ['reserve','Reserve / Static Pool'],
+    ['reports','Reports'],
+    ['chargeoffs','Charge-Offs / Buybacks']
+  ];
+
+  const nav = document.getElementById('nav');
+  const roleSelect = document.getElementById('roleSelect');
+  const dateRange = document.getElementById('dateRange');
+  const viewAsWrap = document.getElementById('viewAsWrap');
+  const viewAsSelect = document.getElementById('viewAsSelect');
+  const internalBadge = document.getElementById('internalBadge');
+
+  function buildData() {
+    const tenants = [
+      { id:'tva', name:'TVA Credit Union' },
+      { id:'river', name:'River County CU' }
+    ];
+    const programs = [
+      { id:'fort', tenantId:'tva', name:'Fortify Program', targetScore:660, targetDTI:39, targetLoss:3.2 },
+      { id:'aroma', tenantId:'tva', name:'Aroma Program', targetScore:640, targetDTI:42, targetLoss:4.1 },
+      { id:'crest', tenantId:'river', name:'Crest Auto Program', targetScore:675, targetDTI:37, targetLoss:2.6 }
+    ];
+    const merchants = [
+      { id:'m1', programId:'fort', name:'Valley Motors' },
+      { id:'m2', programId:'fort', name:'Midtown Wheels' },
+      { id:'m3', programId:'aroma', name:'Aroma Tech School' },
+      { id:'m4', programId:'aroma', name:'Summit Career Center' },
+      { id:'m5', programId:'crest', name:'Northline Auto' },
+      { id:'m6', programId:'crest', name:'Evergreen Mobility' }
+    ];
+    const groups = [
+      { id:'g1', merchantId:'m1', name:'Participation A' },
+      { id:'g2', merchantId:'m2', name:'Participation B' },
+      { id:'g3', merchantId:'m3', name:'Cohort 2025-1' },
+      { id:'g4', merchantId:'m4', name:'Cohort 2025-2' },
+      { id:'g5', merchantId:'m5', name:'Prime Pool' },
+      { id:'g6', merchantId:'m6', name:'Community Pool' }
+    ];
+
+    const names = ['Jordan Miles','Avery Santos','Riley Park','Morgan Hayes','Taylor Reed','Blake Nguyen','Casey Brooks','Parker Diaz','Skyler Owens','Quinn Patel','Rowan Grant','Alex Monroe','Jamie Chen','Cameron Lee','Reese Turner','Elliot James','Dakota White','Kendall Cruz','Harper Bennett','Logan Price','Peyton Ward','Sage Kelly','Charlie Gibson','Emerson Stone'];
+    const statuses = ['Current','Current','Delinquent','Paid Off','Current','Watchlist','Delinquent','Current','Current','Current','Paid Off','Current','Delinquent','Current','Current','Charged Off','Bought Back','Delinquent','Current','Current','Current','Delinquent','Paid Off','Current'];
+    const dpdSet = [0,0,36,0,0,18,72,0,0,0,0,0,94,0,0,180,65,31,0,0,0,360,0,12];
+    const typeSet = ['Auto','Auto','Student','Auto','Auto','Student','Student','Auto','Auto','Auto','Student','Auto','Student','Auto','Auto','Auto','Auto','Student','Auto','Auto','Auto','Student','Student','Auto'];
+    const programCycle = ['fort','fort','aroma','fort','fort','aroma','aroma','fort','crest','crest','aroma','fort','aroma','crest','crest','fort','fort','aroma','crest','crest','fort','aroma','crest','crest'];
+
+    const loans = names.map((name, i) => {
+      const id = `LN-${24001+i}`;
+      const programId = programCycle[i % programCycle.length];
+      const merchantOptions = merchants.filter(m=>m.programId===programId);
+      const merchant = merchantOptions[i % merchantOptions.length];
+      const groupOptions = groups.filter(g=>g.merchantId===merchant.id);
+      const group = groupOptions[0];
+      const original = 9000 + (i*1450);
+      const paidPct = Math.min(0.98, (i%10)*0.08 + (statuses[i]==='Paid Off'?1:0));
+      const current = statuses[i]==='Paid Off'?0:Math.round(original*(1-paidPct));
+      const principalPaid = original-current;
+      const score = 605 + ((i*17)%140);
+      const dti = 22 + ((i*3)%28);
+      const term = 24 + (i%6)*12;
+      const rem = Math.max(0, term - Math.floor((i%14)*2));
+      const rate = 5.9 + (i%7)*0.7;
+      const nextDue = new Date(2026, (i%12), Math.max(1, 18-(i%7))).toISOString().slice(0,10);
+      const daysPastDue = dpdSet[i];
+      const status = statuses[i];
+      const reserveRate = programId==='aroma'?0.085:0.065;
+      const projectedLossPct = programId==='aroma'?0.048:(programId==='fort'?0.033:0.026);
+      const income = Math.round((original * (rate/100) * 0.52) - (current * projectedLossPct));
+      return {
+        id,name,programId,merchantId:merchant.id,groupId:group.id,type:typeSet[i],
+        status,original,current,principalPaid,paidPct,score,dti,term,remainingTerm:rem,
+        rate,daysPastDue,nextDue,reserveRate,projectedLossPct,income,
+        contact:{ phone:`(555) 01${i.toString().padStart(2,'0')}-44${(i%10)}${(9-i%9)}`, email: `${name.toLowerCase().replace(/ /g,'.')}@mail.com`},
+        paymentHistory:[
+          {date:'2026-03-01',amount:320,status:'Posted'},
+          {date:'2026-02-01',amount:320,status:daysPastDue>60?'Late':'Posted'},
+          {date:'2026-01-01',amount:320,status:'Posted'}
+        ],
+        activity:[
+          {date:'2026-03-02',type:'payment',label:'Payment event',note:'ACH payment posted to principal and interest.'},
+          {date:'2026-02-12',type:'support',label:'Servicing ticket',note:'Borrower requested due date change review.'},
+          {date:'2026-01-20',type:'status',label:'Status update',note:`Loan status confirmed as ${status}.`},
+          {date:'2026-01-08',type:'collection',label:'Collection event',note:daysPastDue>29?'Collection outreach initiated.':'No collection action required.'},
+          {date:'2025-12-29',type:'note',label:'Internal note',note:'Program quality check completed.'}
+        ],
+        documents:[
+          {name:'Application Packet.pdf',type:'Application',uploaded:'2025-10-03'},
+          {name:'Promissory Note.pdf',type:'Contract',uploaded:'2025-10-05'},
+          {name:'KYC Verification.pdf',type:'Compliance',uploaded:'2025-10-06'}
+        ]
+      };
+    });
+
+    const reserveTransactions = [
+      {date:'2026-01-05',tenantId:'tva',type:'Funding',amount:122000},
+      {date:'2026-01-28',tenantId:'tva',type:'Loss Draw',amount:-17600},
+      {date:'2026-02-06',tenantId:'tva',type:'Funding',amount:58000},
+      {date:'2026-02-21',tenantId:'tva',type:'Adjustment',amount:3600},
+      {date:'2026-03-06',tenantId:'tva',type:'Funding',amount:61000},
+      {date:'2026-03-23',tenantId:'tva',type:'Loss Draw',amount:-20800},
+      {date:'2026-01-04',tenantId:'river',type:'Funding',amount:90000},
+      {date:'2026-02-03',tenantId:'river',type:'Funding',amount:42000},
+      {date:'2026-02-26',tenantId:'river',type:'Loss Draw',amount:-8400},
+      {date:'2026-03-02',tenantId:'river',type:'Funding',amount:39000},
+      {date:'2026-03-25',tenantId:'river',type:'Loss Draw',amount:-5300}
+    ];
+
+    const chargeoffs = [
+      {loanId:'LN-24016',reason:'90+ DPD and collateral deficiency',amountAtRisk:9400,recoveryNote:'Repossession in progress',tag:'High Priority'},
+      {loanId:'LN-24017',reason:'Merchant fraud repurchase',amountAtRisk:12600,recoveryNote:'Legal review and buyback tracking',tag:'Legal'},
+      {loanId:'LN-24022',reason:'360+ DPD no-contact',amountAtRisk:18200,recoveryNote:'External collections assigned',tag:'Escalated'}
+    ];
+
+    return { tenants, programs, merchants, groups, loans, reserveTransactions, chargeoffs };
+  }
+
+  function init() {
+    nav.innerHTML = navItems.map(([k,l]) => `<button data-view="${k}"><span>${l}</span></button>`).join('');
+    viewAsSelect.innerHTML = `<option value="">All Clients</option>` + data.tenants.map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+    bind();
+    setTenantDefaults();
+    renderAll();
+  }
+
+  function bind() {
+    nav.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-view]');
+      if (!btn) return;
+      if (btn.dataset.view === 'chargeoffs' && !isInternalVisible()) return;
+      state.currentView = btn.dataset.view;
+      renderAll();
+    });
+    roleSelect.addEventListener('change', () => {
+      state.role = roleSelect.value;
+      if (state.role === 'cu') state.viewAs = getCurrentTenant().id;
+      renderAll();
+    });
+    viewAsSelect.addEventListener('change', () => {
+      state.viewAs = viewAsSelect.value;
+      renderAll();
+    });
+    dateRange.addEventListener('change', () => { state.dateRange = dateRange.value; renderAll(); });
+
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('modal').addEventListener('click', e => { if(e.target.id==='modal') closeModal(); });
+    document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+  }
+
+  function setTenantDefaults() {
+    state.viewAs = data.tenants[0].id;
+    roleSelect.value = 'cu';
+    viewAsSelect.value = state.viewAs;
+  }
+
+  function getCurrentTenant() {
+    if (state.role === 'cu') return data.tenants.find(t=>t.id===state.viewAs) || data.tenants[0];
+    if (state.viewAs) return data.tenants.find(t=>t.id===state.viewAs) || data.tenants[0];
+    return { id:'all', name:'All Credit Unions' };
+  }
+
+  function tenantScopeLoans() {
+    const tenant = getCurrentTenant();
+    const programIds = tenant.id === 'all' ? data.programs.map(p=>p.id) : data.programs.filter(p=>p.tenantId===tenant.id).map(p=>p.id);
+    let loans = data.loans.filter(l=>programIds.includes(l.programId));
+    if (state.role === 'cu' || state.viewAs) loans = loans.filter(l=>!['Charged Off','Bought Back'].includes(l.status));
+    return loans;
+  }
+
+  function isInternalVisible() { return state.role==='admin' && !state.viewAs; }
+
+  function num(v){ return new Intl.NumberFormat('en-US', {maximumFractionDigits:0}).format(v); }
+  function money(v){ return '$' + new Intl.NumberFormat('en-US',{maximumFractionDigits:0}).format(v); }
+  function pct(v){ return `${v.toFixed(1)}%`; }
+
+  function delinquencyBucket(dpd){
+    if (dpd <= 0) return 'Current';
+    if (dpd <= 29) return '1-29';
+    if (dpd <= 59) return '30-59';
+    if (dpd <= 89) return '60-89';
+    if (dpd <= 179) return '90-179';
+    if (dpd <= 359) return '180-359';
+    return '360+';
+  }
+
+  function metrics(loans) {
+    const active = loans.filter(l=>l.status!=='Paid Off');
+    const bal = active.reduce((a,b)=>a+b.current,0) || 1;
+    const weightedScore = active.reduce((a,l)=>a+l.score*l.current,0)/bal;
+    const weightedDti = active.reduce((a,l)=>a+l.dti*l.current,0)/bal;
+    const weightedTerm = active.reduce((a,l)=>a+l.remainingTerm*l.current,0)/bal;
+    const bucket30 = active.filter(l=>l.daysPastDue>=30 && l.daysPastDue<60).reduce((a,l)=>a+l.current,0);
+    const bucket60 = active.filter(l=>l.daysPastDue>=60).reduce((a,l)=>a+l.current,0);
+    const projectedLoss = active.reduce((a,l)=>a+l.current*l.projectedLossPct,0);
+    const income = loans.reduce((a,l)=>a+l.income,0);
+
+    const tenant = getCurrentTenant();
+    const reserveBalance = data.reserveTransactions
+      .filter(r=>tenant.id==='all' ? true : r.tenantId===tenant.id)
+      .reduce((a,r)=>a+r.amount,0);
+    const adequacy = reserveBalance / (projectedLoss || 1) * 100;
+
+    return {weightedScore,weightedDti,weightedTerm,bucket30,bucket60,projectedLoss,income,reserveBalance,adequacy};
+  }
+
+  function renderAll() {
+    nav.querySelectorAll('button').forEach(b=>{
+      const hidden = b.dataset.view==='chargeoffs' && !isInternalVisible();
+      b.style.display = hidden ? 'none':'block';
+      b.classList.toggle('active', b.dataset.view===state.currentView);
+    });
+    if (state.currentView==='chargeoffs' && !isInternalVisible()) state.currentView='dashboard';
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById(`view-${state.currentView}`).classList.add('active');
+
+    viewAsWrap.style.display = state.role==='admin' ? 'block':'none';
+    internalBadge.style.display = isInternalVisible() ? 'block':'none';
+    viewAsSelect.value = state.viewAs;
+
+    const tenant = getCurrentTenant();
+    document.getElementById('pageSubtitle').textContent = `${tenant.name} • ${labelDateRange()}`;
+
+    renderDashboard();
+    renderPortfolio();
+    renderLoans();
+    renderReserve();
+    renderReports();
+    renderChargeoffs();
+
+    document.getElementById('pageTitle').textContent = navItems.find(([k])=>k===state.currentView)?.[1] || 'Dashboard';
+  }
+
+  function labelDateRange() {
+    return ({thisMonth:'This Month',lastMonth:'Last Month',quarter:'Quarter',lifetime:'Lifetime'})[state.dateRange];
+  }
+
+  function renderDashboard() {
+    const root = document.getElementById('view-dashboard');
+    const loans = tenantScopeLoans();
+    const m = metrics(loans);
+
+    const rows = aggregateBy('merchantId', loans).map(r=>{
+      const merchant = data.merchants.find(x=>x.id===r.key);
+      const delin = r.loans.filter(l=>l.daysPastDue>=30).length;
+      return `<tr data-merchant="${r.key}"><td>${merchant?.name||r.key}</td><td>${r.loans.length}</td><td>${money(r.balance)}</td><td>${pct(r.avgScore/8)}</td><td>${pct(delin/r.loans.length*100)}</td><td>${money(r.income)}</td><td><span class="status ${delin>2?'bad':'good'}">${delin>2?'Watch':'Stable'}</span></td></tr>`;
+    }).join('');
+
+    root.innerHTML = `
+      <div class="kpis">
+        ${kpi('Weighted Avg Credit Score', num(m.weightedScore), 'Program quality metric', 'score')}
+        ${kpi('Weighted Avg DTI', pct(m.weightedDti), 'Underwriting drift check', 'dti')}
+        ${kpi('Weighted Avg Remaining Term', `${m.weightedTerm.toFixed(1)} mo`, 'Exposure horizon', 'term')}
+        ${kpi('30-Day Delinquency', money(m.bucket30), 'Click to open filtered loans', '30d')}
+        ${kpi('60+ Delinquency / Buyback', money(m.bucket60), 'Potential buyback exposure', '60d')}
+        ${kpi('Net Income', money(m.income), 'Click for breakdown', 'income')}
+        ${kpi('Reserve Balance', money(m.reserveBalance), 'Funding less loss draws', 'reserve')}
+        ${kpi('Reserve Adequacy', pct(m.adequacy), `${m.adequacy>=100?'Above projected losses':'Below projected losses'}`, 'adequacy')}
+      </div>
+      <div class="grid-3">
+        <div class="panel">
+          <h3>Loss Curve (Projected vs Actual)</h3>
+          <div class="body chart-wrap">
+            <canvas id="lossCurve" width="760" height="190"></canvas>
+            <div class="chart-tooltip" id="lossTooltip">Hover month points</div>
+            <div class="legend">
+              <span><i class="dot" style="background:#5f88c8"></i>Projected Loss</span>
+              <span><i class="dot" style="background:#c66363"></i>Actual Loss</span>
+              <span><i class="dot" style="background:#5ca47d"></i>Reserve Coverage</span>
+            </div>
+            <button class="no-print" id="openLossModal" style="margin-top:8px">View Loss Detail</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Payoff Curve & Reserve Trend</h3>
+          <div class="body chart-wrap">
+            <canvas id="payoffCurve" width="560" height="190"></canvas>
+            <div class="legend">
+              <span><i class="dot" style="background:#7da6d8"></i>Principal Paydown</span>
+              <span><i class="dot" style="background:#5ca47d"></i>Reserve Balance</span>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Delinquency Distribution</h3>
+          <div class="body chart-wrap">
+            <canvas id="delinqDonut" width="300" height="190"></canvas>
+            <div id="donutLegend" style="font-size:11px;color:var(--muted)"></div>
+          </div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Merchant / Program</th><th>Loans</th><th>Current Balance</th><th>Weighted Score (scaled)</th><th>30+ Rate</th><th>Net Income</th><th>Risk</th></tr></thead>
+            <tbody>${rows || '<tr><td colspan="7" class="empty">No rows for selected filters.</td></tr>'}</tbody>
+          </table>
+        </div>
+        <div class="panel alerts">
+          <h3>Alerts & Quick Links</h3>
+          <div class="body">
+            <div class="item"><span class="status bad">Exception</span> 3 loans exceeded 90 DPD this period.</div>
+            <div class="item"><span class="status warn">Reserve</span> Aroma Program reserve adequacy trended below target last month.</div>
+            <div class="item"><span class="status info">Examiner</span> Call report packet due in 4 business days.</div>
+            <div class="item">
+              <div class="quick">
+                <button id="jumpDelinq">Open Delinquent Loans</button>
+                <button id="jumpReports">Open Reports</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    drawLossCurve('lossCurve', 'lossTooltip');
+    drawPayoff('payoffCurve');
+    drawDonut('delinqDonut','donutLegend', loans);
+
+    root.querySelectorAll('.kpi').forEach(card=>card.addEventListener('click', ()=>handleKpi(card.dataset.action)));
+    root.querySelectorAll('tbody tr[data-merchant]').forEach(tr=>tr.addEventListener('click',()=>{
+      state.currentView='portfolio';
+      state.portfolioPath = {tenantId: getCurrentTenant().id==='all'?null:getCurrentTenant().id, programId:null, merchantId:tr.dataset.merchant, groupId:null};
+      renderAll();
+    }));
+    document.getElementById('jumpDelinq').onclick = ()=>{ state.currentView='loans'; state.loansTab='Delinquent'; renderAll(); };
+    document.getElementById('jumpReports').onclick = ()=>{ state.currentView='reports'; renderAll(); };
+    document.getElementById('openLossModal').onclick = ()=>openLossModal(loans);
+  }
+
+  function kpi(label,value,delta,action){
+    return `<article class="kpi" data-action="${action}" tabindex="0"><div class="label">${label}</div><div class="value">${value}</div><div class="delta">${delta}</div></article>`;
+  }
+
+  function handleKpi(action){
+    if(action==='income') return openIncomeModal();
+    if(action==='30d' || action==='60d'){ state.currentView='loans'; state.loansTab='Delinquent'; renderAll(); return; }
+    if(action==='reserve' || action==='adequacy'){ state.currentView='reserve'; renderAll(); return; }
+    openModal('KPI Detail', `<p style="margin-top:0">${action.toUpperCase()} trend detail available in production reporting mode.</p><p>Use Reports and Reserve views for examiner-ready context and rollups.</p>`);
+  }
+
+  function renderPortfolio() {
+    const root = document.getElementById('view-portfolio');
+    const tenant = getCurrentTenant();
+    const path = state.portfolioPath;
+
+    const loans = filterByPath(tenantScopeLoans(), path);
+    const m = metrics(loans);
+
+    const crumbs = [];
+    crumbs.push(`<button data-level="root">${tenant.name}</button>`);
+    if (path.programId) crumbs.push(`<span>›</span><button data-level="program">${getProgram(path.programId)?.name}</button>`);
+    if (path.merchantId) crumbs.push(`<span>›</span><button data-level="merchant">${getMerchant(path.merchantId)?.name}</button>`);
+    if (path.groupId) crumbs.push(`<span>›</span><button data-level="group">${getGroup(path.groupId)?.name}</button>`);
+
+    const childRows = buildChildrenRows(path, tenant);
+
+    root.innerHTML = `
+      <div class="crumbs">${crumbs.join(' ')}</div>
+      <div class="kpis" style="grid-template-columns:repeat(5,minmax(0,1fr))">
+        ${kpi('Loans in Scope', num(loans.length), 'Selected hierarchy slice', 'x')}
+        ${kpi('Current Balance', money(loans.reduce((a,b)=>a+b.current,0)), 'Outstanding principal', 'x')}
+        ${kpi('Weighted Score', num(m.weightedScore), 'Risk quality', 'x')}
+        ${kpi('30+ Delinquency', money(m.bucket30+m.bucket60), 'At-risk principal', 'x')}
+        ${kpi('Projected Loss', money(m.projectedLoss), 'Expected cumulative loss', 'x')}
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Hierarchy Node</th><th>Level</th><th>Loans</th><th>Balance</th><th>Delinquent</th><th>Net Income</th><th>Action</th></tr></thead>
+          <tbody>${childRows || '<tr><td colspan="7"><div class="empty">No children at current level.</div></td></tr>'}</tbody>
+        </table>
+      </div>
+    `;
+
+    root.querySelectorAll('button[data-level]').forEach(btn=>btn.onclick=()=>{
+      const lv = btn.dataset.level;
+      if(lv==='root') state.portfolioPath={tenantId: tenant.id==='all'?null:tenant.id,programId:null,merchantId:null,groupId:null};
+      if(lv==='program') state.portfolioPath={...path,merchantId:null,groupId:null};
+      if(lv==='merchant') state.portfolioPath={...path,groupId:null};
+      renderAll();
+    });
+    root.querySelectorAll('tr[data-next]').forEach(tr=>tr.onclick=()=>{
+      const [level,id] = tr.dataset.next.split(':');
+      if(level==='program') state.portfolioPath.programId=id;
+      if(level==='merchant') state.portfolioPath.merchantId=id;
+      if(level==='group') state.portfolioPath.groupId=id;
+      if(level==='loan') { state.currentView='loans'; state.selectedLoanId=id; }
+      renderAll();
+    });
+  }
+
+  function buildChildrenRows(path, tenant){
+    const loans = tenantScopeLoans();
+    if (!path.programId) {
+      const list = data.programs.filter(p=>tenant.id==='all' || p.tenantId===tenant.id);
+      return list.map(p=>{
+        const pl = loans.filter(l=>l.programId===p.id);
+        return row(`Program • ${p.name}`, 'Program', pl.length, pl.reduce((a,b)=>a+b.current,0), pl.filter(x=>x.daysPastDue>=30).length, pl.reduce((a,b)=>a+b.income,0), `program:${p.id}`);
+      }).join('');
+    }
+    if (!path.merchantId) {
+      const list = data.merchants.filter(m=>m.programId===path.programId);
+      return list.map(mr=>{
+        const ml = loans.filter(l=>l.merchantId===mr.id);
+        return row(`Merchant • ${mr.name}`, 'Merchant', ml.length, ml.reduce((a,b)=>a+b.current,0), ml.filter(x=>x.daysPastDue>=30).length, ml.reduce((a,b)=>a+b.income,0), `merchant:${mr.id}`);
+      }).join('');
+    }
+    if (!path.groupId) {
+      const list = data.groups.filter(g=>g.merchantId===path.merchantId);
+      return list.map(g=>{
+        const gl = loans.filter(l=>l.groupId===g.id);
+        return row(`Group • ${g.name}`, 'Participation', gl.length, gl.reduce((a,b)=>a+b.current,0), gl.filter(x=>x.daysPastDue>=30).length, gl.reduce((a,b)=>a+b.income,0), `group:${g.id}`);
+      }).join('');
+    }
+    const leaf = loans.filter(l=>l.groupId===path.groupId);
+    return leaf.map(l=>row(`${l.id} • ${l.name}`, 'Loan', 1, l.current, l.daysPastDue>=30?1:0, l.income, `loan:${l.id}`)).join('');
+  }
+
+  function row(name, level, loans, bal, delinq, income, next){
+    return `<tr data-next="${next}"><td>${name}</td><td>${level}</td><td>${loans}</td><td>${money(bal)}</td><td>${delinq}</td><td>${money(income)}</td><td><span class="status info">Drill Down</span></td></tr>`;
+  }
+
+  function filterByPath(loans, path){
+    return loans.filter(l=>{
+      if (path.programId && l.programId!==path.programId) return false;
+      if (path.merchantId && l.merchantId!==path.merchantId) return false;
+      if (path.groupId && l.groupId!==path.groupId) return false;
+      return true;
+    });
+  }
+
+  function renderLoans(){
+    const root = document.getElementById('view-loans');
+    let loans = tenantScopeLoans();
+
+    const f = state.loanFilters;
+    if (f.search) loans = loans.filter(l => `${l.id} ${l.name}`.toLowerCase().includes(f.search.toLowerCase()));
+    if (f.program!=='all') loans = loans.filter(l=>l.programId===f.program);
+    if (f.merchant!=='all') loans = loans.filter(l=>l.merchantId===f.merchant);
+    if (f.group!=='all') loans = loans.filter(l=>l.groupId===f.group);
+    if (f.status!=='all') loans = loans.filter(l=>l.status===f.status);
+    if (f.bucket!=='all') loans = loans.filter(l=>delinquencyBucket(l.daysPastDue)===f.bucket);
+
+    if(state.loansTab==='Active') loans = loans.filter(l=>!['Paid Off','Charged Off','Bought Back'].includes(l.status));
+    if(state.loansTab==='Current') loans = loans.filter(l=>l.daysPastDue===0 && l.status!=='Paid Off');
+    if(state.loansTab==='Delinquent') loans = loans.filter(l=>l.daysPastDue>=30 && !['Paid Off'].includes(l.status));
+    if(state.loansTab==='Paid Off') loans = loans.filter(l=>l.status==='Paid Off');
+    if(state.loansTab==='Charge-Offs') loans = loans.filter(l=>['Charged Off','Bought Back'].includes(l.status));
+
+    const selected = loans.find(l=>l.id===state.selectedLoanId) || loans[0] || null;
+    if (selected) state.selectedLoanId = selected.id;
+
+    root.innerHTML = `
+      <div class="filters no-print">
+        <input id="loanSearch" placeholder="Search applicant or loan ID" value="${f.search}" />
+        ${buildSelect('programFilter', f.program, [{v:'all',l:'All Programs'}, ...data.programsForTenant().map(x=>({v:x.id,l:x.name}))])}
+        ${buildSelect('merchantFilter', f.merchant, [{v:'all',l:'All Merchants'}, ...data.merchantsForTenant().map(x=>({v:x.id,l:x.name}))])}
+        ${buildSelect('groupFilter', f.group, [{v:'all',l:'All Groups'}, ...data.groupsForTenant().map(x=>({v:x.id,l:x.name}))])}
+        ${buildSelect('statusFilter', f.status, [{v:'all',l:'All Statuses'},{v:'Current',l:'Current'},{v:'Delinquent',l:'Delinquent'},{v:'Paid Off',l:'Paid Off'},{v:'Watchlist',l:'Watchlist'},{v:'Charged Off',l:'Charged Off'},{v:'Bought Back',l:'Bought Back'}])}
+        ${buildSelect('bucketFilter', f.bucket, [{v:'all',l:'All Buckets'},{v:'Current',l:'Current'},{v:'1-29',l:'1-29'},{v:'30-59',l:'30-59'},{v:'60-89',l:'60-89'},{v:'90-179',l:'90-179'},{v:'180-359',l:'180-359'},{v:'360+',l:'360+'}])}
+      </div>
+      <div class="tabs no-print">
+        ${['Active','Current','Delinquent','Paid Off','Charge-Offs'].map(t=>`<button class="tab ${state.loansTab===t?'active':''}" data-tab="${t}">${t}</button>`).join('')}
+      </div>
+      <div class="loans-layout">
+        <div class="table-wrap" style="max-height:630px;overflow:auto;">
+          <table>
+            <thead><tr><th>Loan ID</th><th>Borrower</th><th>Status</th><th>Program</th><th>Balance</th><th>DPD</th><th>Bucket</th></tr></thead>
+            <tbody>
+              ${loans.map(l=>`<tr data-loan="${l.id}" ${selected&&selected.id===l.id?'style="background:#213247"':''}><td>${l.id}</td><td>${l.name}</td><td>${statusTag(l.status)}</td><td>${getProgram(l.programId)?.name||''}</td><td>${money(l.current)}</td><td>${l.daysPastDue}</td><td>${delinquencyBucket(l.daysPastDue)}</td></tr>`).join('') || '<tr><td colspan="7"><div class="empty">No loans match filters.</div></td></tr>'}
+            </tbody>
+          </table>
+        </div>
+        <div class="detail">${selected ? loanDetail(selected) : '<div class="empty">Select a loan to view details.</div>'}</div>
+      </div>
+    `;
+
+    hookLoanFilters();
+    root.querySelectorAll('tr[data-loan]').forEach(tr=>tr.onclick=()=>{state.selectedLoanId=tr.dataset.loan; renderLoans();});
+    root.querySelectorAll('[data-tab]').forEach(t=>t.onclick=()=>{state.loansTab=t.dataset.tab; renderLoans();});
+
+    root.querySelectorAll('[data-event-filter]').forEach(btn=>btn.onclick=()=>{
+      const type = btn.dataset.eventFilter;
+      root.querySelectorAll('.event').forEach(ev=> ev.style.display = (type==='all'||ev.dataset.type===type)?'block':'none');
+    });
+  }
+
+  function hookLoanFilters(){
+    const map = [['loanSearch','search'],['programFilter','program'],['merchantFilter','merchant'],['groupFilter','group'],['statusFilter','status'],['bucketFilter','bucket']];
+    map.forEach(([id,key])=>{
+      const el = document.getElementById(id); if(!el) return;
+      el.oninput = el.onchange = ()=>{ state.loanFilters[key]=el.value; renderLoans(); };
+    });
+  }
+
+  function buildSelect(id,current,opts){
+    return `<select id="${id}">${opts.map(o=>`<option value="${o.v}" ${o.v===current?'selected':''}>${o.l}</option>`).join('')}</select>`;
+  }
+
+  function loanDetail(l){
+    return `
+      <h3 style="margin:0 0 8px 0">${l.name} <span class="status info" style="margin-left:6px">${l.id}</span></h3>
+      <div class="meta-grid">
+        ${meta('Status', statusTag(l.status,true))}
+        ${meta('Type', l.type)}
+        ${meta('Program', getProgram(l.programId)?.name)}
+        ${meta('Merchant', getMerchant(l.merchantId)?.name)}
+        ${meta('Group / Participation', getGroup(l.groupId)?.name)}
+        ${meta('Original Balance', money(l.original))}
+        ${meta('Current Balance', money(l.current))}
+        ${meta('Principal Paid', money(l.principalPaid))}
+        ${meta('% Paid Down', pct(l.paidPct*100))}
+        ${meta('Interest Rate', pct(l.rate))}
+        ${meta('Remaining Term', `${l.remainingTerm} mo`)}
+        ${meta('Days Past Due', `${l.daysPastDue}`)}
+        ${meta('Next Payment Due', l.nextDue)}
+        ${meta('Contact', `${l.contact.phone}<br>${l.contact.email}`)}
+      </div>
+      <h4 style="margin:10px 0 6px">Payment History</h4>
+      <div class="table-wrap" style="margin-bottom:6px">
+        <table><thead><tr><th>Date</th><th>Amount</th><th>Status</th></tr></thead><tbody>${l.paymentHistory.map(p=>`<tr><td>${p.date}</td><td>${money(p.amount)}</td><td>${p.status}</td></tr>`).join('')}</tbody></table>
+      </div>
+      <h4 style="margin:8px 0 6px">Documents</h4>
+      <div class="table-wrap" style="margin-bottom:6px">
+        <table><thead><tr><th>Name</th><th>Type</th><th>Uploaded</th></tr></thead><tbody>${l.documents.map(d=>`<tr><td>${d.name}</td><td>${d.type}</td><td>${d.uploaded}</td></tr>`).join('')}</tbody></table>
+      </div>
+      <h4 style="margin:8px 0 6px">Activity Log</h4>
+      <div class="filters">
+        <button data-event-filter="all" class="chip">All</button>
+        <button data-event-filter="note" class="chip">Notes</button>
+        <button data-event-filter="support" class="chip">Support</button>
+        <button data-event-filter="status" class="chip">Status</button>
+        <button data-event-filter="payment" class="chip">Payment</button>
+        <button data-event-filter="collection" class="chip">Collection</button>
+      </div>
+      <div class="timeline">
+        ${l.activity.map(e=>`<div class="event" data-type="${e.type}"><span class="status info">${icon(e.type)} ${e.label}</span> <span style="color:var(--muted)">${e.date}</span><div style="margin-top:4px">${e.note}</div></div>`).join('')}
+      </div>
+    `;
+  }
+
+  function renderReserve(){
+    const root = document.getElementById('view-reserve');
+    const tenant = getCurrentTenant();
+    const loans = tenantScopeLoans();
+    const m = metrics(loans);
+    const programs = data.programsForTenant();
+
+    const assumptions = programs.map(p=>{
+      const pl = loans.filter(l=>l.programId===p.id);
+      const pm = metrics(pl);
+      return `<tr><td>${p.name}</td><td>${p.targetScore}</td><td>${p.targetDTI}%</td><td>${p.targetLoss}%</td><td>${num(pm.weightedScore)}</td><td>${pct(pm.weightedDti)}</td><td>${pct((pm.projectedLoss/(pl.reduce((a,b)=>a+b.current,0)||1))*100)}</td></tr>`;
+    }).join('');
+
+    const tx = data.reserveTransactions.filter(r=>tenant.id==='all'||r.tenantId===tenant.id)
+      .map(r=>`<tr><td>${r.date}</td><td>${r.type}</td><td>${money(r.amount)}</td></tr>`).join('');
+
+    root.innerHTML = `
+      <div class="kpis" style="grid-template-columns: repeat(4,minmax(0,1fr));">
+        ${kpi('Current Reserve Balance', money(m.reserveBalance), 'Funding less draws', 'reserve')}
+        ${kpi('Projected Portfolio Loss', money(m.projectedLoss), 'Expected cumulative', 'reserve')}
+        ${kpi('Reserve Coverage', pct(m.adequacy), m.adequacy>=100?'Adequate':'Below threshold', 'reserve')}
+        ${kpi('Active Balance', money(loans.reduce((a,b)=>a+b.current,0)), 'Current outstanding principal', 'reserve')}
+      </div>
+      <div class="grid-3" style="grid-template-columns:1.4fr 1fr 1fr;">
+        <div class="panel"><h3>Reserve Funding Trend</h3><div class="body"><canvas id="reserveTrend" width="620" height="180"></canvas></div></div>
+        <div class="panel"><h3>Coverage vs Loss</h3><div class="body"><canvas id="coverageBar" width="320" height="180"></canvas></div></div>
+        <div class="panel"><h3>Static Pool Snapshot</h3><div class="body"><canvas id="staticPool" width="320" height="180"></canvas></div></div>
+      </div>
+      <div class="two-col">
+        <div class="table-wrap"><table><thead><tr><th>Date</th><th>Transaction</th><th>Amount</th></tr></thead><tbody>${tx}</tbody></table></div>
+        <div class="table-wrap"><table><thead><tr><th>Program</th><th>Target Score</th><th>Target DTI</th><th>Target Loss</th><th>Actual Score</th><th>Actual DTI</th><th>Actual Loss</th></tr></thead><tbody>${assumptions}</tbody></table></div>
+      </div>
+    `;
+
+    drawLineSimple('reserveTrend',[90,132,114,170,149,201],["Jan","Feb","Mar","Apr","May","Jun"],['#5ca47d']);
+    drawBars('coverageBar',[m.reserveBalance,m.projectedLoss],['Reserve','Projected Loss'],['#5ca47d','#c66363']);
+    drawLineSimple('staticPool',[1.2,1.6,2.0,2.4,2.9,3.1],["M1","M2","M3","M4","M5","M6"],['#5f88c8']);
+  }
+
+  function renderReports(){
+    const root = document.getElementById('view-reports');
+    const tenant = getCurrentTenant();
+    const loans = tenantScopeLoans();
+    const m = metrics(loans);
+    const bucketDefs = ['30-59','60-89','90-179','180-359','360+'];
+    const rows = bucketDefs.map(b=>{
+      const bucketLoans = loans.filter(l=>delinquencyBucket(l.daysPastDue)===b);
+      return `<tr><td>${b} days</td><td>${bucketLoans.length}</td><td>${money(bucketLoans.reduce((a,x)=>a+x.current,0))}</td></tr>`;
+    }).join('');
+
+    root.innerHTML = `
+      <div class="print-header">
+        <h1>Ross Allen Financial Report Package</h1>
+        <p>${tenant.name} • ${labelDateRange()} • Generated ${new Date().toISOString().slice(0,10)}</p>
+      </div>
+      <div class="report-toggle no-print">
+        <button class="tab ${state.reportMode==='board'?'active':''}" data-report="board">Board Report</button>
+        <button class="tab ${state.reportMode==='call'?'active':''}" data-report="call">Call Report</button>
+        <button id="printBtn">Print</button>
+        <button id="csvBtn">Export CSV</button>
+        <button id="pdfBtn">Export PDF</button>
+      </div>
+      <div class="report-card-grid">
+        <div class="panel"><h3>Board Summary</h3><div class="body"><div><strong>${money(loans.reduce((a,b)=>a+b.current,0))}</strong><br><span style="color:var(--muted)">Current balance</span></div></div></div>
+        <div class="panel"><h3>Audit / Examiner</h3><div class="body"><div><strong>${money(m.reserveBalance)}</strong><br><span style="color:var(--muted)">Reserve balance</span></div></div></div>
+        <div class="panel"><h3>Net Income</h3><div class="body"><div><strong>${money(m.income)}</strong><br><span style="color:var(--muted)">Period-to-date</span></div></div></div>
+        <div class="panel"><h3>30+ Delinquency</h3><div class="body"><div><strong>${money(m.bucket30+m.bucket60)}</strong><br><span style="color:var(--muted)">Call report basis</span></div></div></div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Bucket</th><th>Count</th><th>Amount</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <div class="panel" style="margin-top:8px"><h3>${state.reportMode==='board'?'Board Narrative':'Call Report Narrative'}</h3><div class="body">${state.reportMode==='board'?
+      'Portfolio remains within underwriting assumptions. Reserve coverage is monitored monthly with exception review for 60+ DPD loans. Profitability remains positive at merchant and program level.' :
+      'Delinquency segmentation follows 30/60/90/180/360+ day buckets. Reserve adequacy and projected loss assumptions align to static pool trend files and examiner packet conventions.'}
+      </div></div>
+    `;
+
+    root.querySelectorAll('[data-report]').forEach(b=>b.onclick=()=>{state.reportMode=b.dataset.report; renderReports();});
+    const printBtn = document.getElementById('printBtn'); if(printBtn) printBtn.onclick=()=>window.print();
+    const csvBtn = document.getElementById('csvBtn'); if(csvBtn) csvBtn.onclick=()=>openModal('CSV Export','<p>CSV export queued: delinquency_breakdown.csv</p>');
+    const pdfBtn = document.getElementById('pdfBtn'); if(pdfBtn) pdfBtn.onclick=()=>openModal('PDF Export','<p>PDF report packet generated for board distribution.</p>');
+  }
+
+  function renderChargeoffs(){
+    const root = document.getElementById('view-chargeoffs');
+    if(!isInternalVisible()) { root.innerHTML = '<div class="empty">Internal view only.</div>'; return; }
+
+    const rows = data.chargeoffs.map(c=>{
+      const l = data.loans.find(x=>x.id===c.loanId);
+      return `<tr data-loan="${c.loanId}"><td>${c.loanId}</td><td>${l?.name||''}</td><td>${getProgram(l?.programId)?.name||''}</td><td>${getMerchant(l?.merchantId)?.name||''}</td><td>${l?.status||''}</td><td>${money(c.amountAtRisk)}</td><td>${c.reason}</td><td>${c.recoveryNote}</td><td><span class="status bad">${c.tag}</span></td></tr>`;
+    }).join('');
+
+    root.innerHTML = `
+      <div class="internal-banner">Internal Only: Charge-off / buyback workflow, recovery notes, and legal actions are restricted to Ross Allen staff.</div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Loan ID</th><th>Borrower</th><th>Program</th><th>Merchant</th><th>Status</th><th>Amount at Risk</th><th>Buyback Reason</th><th>Recovery Note</th><th>Action Tag</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+      <div class="panel"><h3>Internal Alerts</h3><div class="body">
+        <div class="item"><span class="status bad">Escalated</span> LN-24022 has no borrower contact for 45 days.</div>
+        <div class="item"><span class="status warn">Legal</span> LN-24017 merchant repurchase document pending signature.</div>
+      </div></div>
+    `;
+
+    root.querySelectorAll('tr[data-loan]').forEach(tr=>tr.onclick=()=>{
+      state.currentView='loans'; state.selectedLoanId=tr.dataset.loan; state.loansTab='Charge-Offs'; renderAll();
+    });
+  }
+
+  function openIncomeModal(){
+    const loans = tenantScopeLoans();
+    const byProgram = aggregateBy('programId', loans);
+    openModal('Net Income Breakdown', `
+      <p style="margin-top:0">Period net income reflects interest revenue less projected loss allocation by program scope.</p>
+      <div class="table-wrap"><table><thead><tr><th>Program</th><th>Loans</th><th>Income</th><th>Projected Loss Allocation</th></tr></thead>
+      <tbody>${byProgram.map(p=>`<tr><td>${getProgram(p.key)?.name}</td><td>${p.loans.length}</td><td>${money(p.income)}</td><td>${money(p.loans.reduce((a,l)=>a+l.current*l.projectedLossPct,0))}</td></tr>`).join('')}</tbody></table></div>
+    `);
+  }
+
+  function openLossModal(loans){
+    const monthly = [
+      {m:'M1',proj:0.4,act:0.3,res:1.2},{m:'M2',proj:0.8,act:0.7,res:2.0},{m:'M3',proj:1.2,act:1.4,res:2.7},
+      {m:'M4',proj:1.9,act:2.1,res:3.3},{m:'M5',proj:2.6,act:2.8,res:4.0},{m:'M6',proj:3.2,act:3.4,res:4.8}
+    ];
+    openModal('Loss Curve Detail', `
+      <p style="margin-top:0">Static pool loss detail with projected, actual, and reserve coverage trends.</p>
+      <div class="table-wrap"><table><thead><tr><th>Month on Book</th><th>Projected Loss %</th><th>Actual Loss %</th><th>Reserve Coverage %</th></tr></thead>
+      <tbody>${monthly.map(x=>`<tr><td>${x.m}</td><td>${x.proj.toFixed(2)}%</td><td>${x.act.toFixed(2)}%</td><td>${x.res.toFixed(2)}%</td></tr>`).join('')}</tbody></table></div>
+      <p>Loans in analyzed scope: <strong>${loans.length}</strong>.</p>
+    `);
+  }
+
+  function openModal(title, html){
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalBody').innerHTML = html;
+    document.getElementById('modal').classList.add('open');
+  }
+  function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+  function aggregateBy(key, loans){
+    const map = new Map();
+    loans.forEach(l=>{
+      if(!map.has(l[key])) map.set(l[key],[]);
+      map.get(l[key]).push(l);
+    });
+    return [...map.entries()].map(([k, arr])=>({ key:k, loans:arr, balance:arr.reduce((a,b)=>a+b.current,0), avgScore:arr.reduce((a,b)=>a+b.score,0)/(arr.length||1), income:arr.reduce((a,b)=>a+b.income,0)}));
+  }
+
+  function drawLossCurve(id, tooltipId){
+    const c = document.getElementById(id); if(!c) return;
+    const ctx = c.getContext('2d');
+    const w = c.width, h = c.height;
+    const p = [8,15,24,33,44,56,68,80];
+    const a = [7,17,28,39,52,60,74,89];
+    const r = [22,32,40,48,57,68,78,92];
+    renderLines(ctx,w,h,[p,a,r],['#5f88c8','#c66363','#5ca47d']);
+    const tt = document.getElementById(tooltipId);
+    c.onmousemove = e=>{
+      const rect = c.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const i = Math.max(0, Math.min(7, Math.round((x-35)/(w-70)*7)));
+      tt.textContent = `Mo ${i+1}: Proj ${p[i]} | Act ${a[i]} | Res ${r[i]}`;
+    };
+  }
+  function drawPayoff(id){
+    const c = document.getElementById(id); if(!c) return;
+    const ctx = c.getContext('2d');
+    const w=c.width,h=c.height;
+    renderLines(ctx,w,h,[[95,83,74,66,57,51,45,37],[45,49,54,62,68,74,81,88]],['#7da6d8','#5ca47d']);
+  }
+  function drawDonut(id,legendId,loans){
+    const c = document.getElementById(id); if(!c) return;
+    const ctx = c.getContext('2d');
+    const buckets = ['Current','1-29','30-59','60-89','90-179','180-359','360+'];
+    const colors = ['#5ca47d','#6b94c8','#d1a06a','#c8835c','#c66363','#8b5b67','#62404f'];
+    const counts = buckets.map(b=>loans.filter(l=>delinquencyBucket(l.daysPastDue)===b).length);
+    const total = counts.reduce((a,b)=>a+b,0)||1;
+    let start = -Math.PI/2;
+    counts.forEach((v,i)=>{
+      const ang = (v/total)*Math.PI*2;
+      ctx.beginPath(); ctx.moveTo(150,95); ctx.arc(150,95,75,start,start+ang); ctx.closePath(); ctx.fillStyle=colors[i]; ctx.fill(); start+=ang;
+    });
+    ctx.globalCompositeOperation='destination-out'; ctx.beginPath(); ctx.arc(150,95,42,0,Math.PI*2); ctx.fill(); ctx.globalCompositeOperation='source-over';
+    document.getElementById(legendId).innerHTML = buckets.map((b,i)=>`<div><i class="dot" style="background:${colors[i]}"></i>${b}: ${counts[i]}</div>`).join('');
+  }
+  function drawLineSimple(id, vals, labels, colors){
+    const c=document.getElementById(id); if(!c)return; const ctx=c.getContext('2d'); renderLines(ctx,c.width,c.height,[vals],colors,labels);
+  }
+  function drawBars(id, vals, labels, colors){
+    const c=document.getElementById(id); if(!c)return; const ctx=c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    const max = Math.max(...vals)*1.1; const bw=70; const gap=60;
+    vals.forEach((v,i)=>{
+      const x = 50 + i*(bw+gap), h = (v/max)*(c.height-50), y = c.height-25-h;
+      ctx.fillStyle = colors[i]; ctx.fillRect(x,y,bw,h);
+      ctx.fillStyle = '#c8d4e7'; ctx.fillText(labels[i],x,y+h+14);
+      ctx.fillText((v/1000).toFixed(0)+'k',x,y-6);
+    });
+  }
+  function renderLines(ctx,w,h,series,colors,labels=[]){
+    ctx.clearRect(0,0,w,h);
+    ctx.strokeStyle = '#2f3c50';
+    for(let y=20; y<h-20; y+=30){ ctx.beginPath(); ctx.moveTo(30,y); ctx.lineTo(w-15,y); ctx.stroke(); }
+    const max = Math.max(...series.flat())*1.12;
+    series.forEach((arr,s)=>{
+      ctx.strokeStyle = colors[s]; ctx.lineWidth=2;
+      ctx.beginPath();
+      arr.forEach((v,i)=>{
+        const x = 35 + i*((w-70)/(arr.length-1));
+        const y = h-22 - (v/max)*(h-50);
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+      arr.forEach((v,i)=>{
+        const x = 35 + i*((w-70)/(arr.length-1));
+        const y = h-22 - (v/max)*(h-50);
+        ctx.fillStyle = colors[s]; ctx.beginPath(); ctx.arc(x,y,2.8,0,Math.PI*2); ctx.fill();
+        if(s===0 && labels[i]) { ctx.fillStyle='#9fb0c7'; ctx.fillText(labels[i],x-8,h-6); }
+      });
+    });
+  }
+
+  function getProgram(id){ return data.programs.find(x=>x.id===id); }
+  function getMerchant(id){ return data.merchants.find(x=>x.id===id); }
+  function getGroup(id){ return data.groups.find(x=>x.id===id); }
+  function statusTag(s, raw=false){
+    const cls = s==='Current'||s==='Paid Off'?'good':(s==='Delinquent'||s==='Watchlist'?'warn':'bad');
+    return raw ? `<span class="status ${cls}">${s}</span>` : `<span class="status ${cls}">${s}</span>`;
+  }
+  function meta(k,v){ return `<div class="meta"><div style="color:var(--muted);font-size:11px">${k}</div><div style="margin-top:3px">${v||''}</div></div>`; }
+  function icon(t){ return ({note:'📝',support:'🎫',status:'🔁',payment:'💳',collection:'⚖️'})[t] || '•'; }
+
+  data.programsForTenant = function(){
+    const tenant = getCurrentTenant();
+    return this.programs.filter(p=> tenant.id==='all' || p.tenantId===tenant.id);
+  };
+  data.merchantsForTenant = function(){
+    const programs = this.programsForTenant().map(p=>p.id);
+    return this.merchants.filter(m=>programs.includes(m.programId));
+  };
+  data.groupsForTenant = function(){
+    const merchants = this.merchantsForTenant().map(m=>m.id);
+    return this.groups.filter(g=>merchants.includes(g.merchantId));
+  };
+
+  init();
+})();
+</script>
+</body>
+</html>
